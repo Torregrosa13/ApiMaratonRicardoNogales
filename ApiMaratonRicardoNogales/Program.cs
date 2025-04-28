@@ -73,9 +73,13 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
 }
+app.MapOpenApi();
+app.UseSwagger();
+app.UseSwaggerUI(options=>{
+    options.SwaggerEndpoint("/openapi/v1.json", "api maraton");
+    options.RoutePrefix = "";
+});
 
 app.UseHttpsRedirection();
 
