@@ -1,4 +1,5 @@
 ﻿using ApiMaratonRicardoNogales.Data;
+using ApiMaratonRicardoNogales.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -25,11 +26,36 @@ namespace ApiMaratonRicardoNogales.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Equipo>> GetEquipo(int id)
+        public async Task<ActionResult<EquipoDetalleDTO>> GetEquipo(int id)
         {
-            var equipo = await context.Equipos.FindAsync(id);
+            var equipo = await context.Equipos
+                .Where(e => e.IdEquipo == id)
+                .Select(e => new EquipoDetalleDTO
+                {
+                    IdEquipo = e.IdEquipo,
+                    Nombre = e.Nombre,
+                    Escudo = e.Escudo,
+                    Jugadores = context.Jugadores
+                                .Where(j => j.IdEquipo == e.IdEquipo)
+                                .Select(j => new JugadorDTO
+                                {
+                                    IdJugador = j.IdJugador,
+                                    Nombre = j.Nombre,
+                                    Apellidos = j.Apellidos,
+                                    Dorsal = j.Dorsal,
+                                    Goles = j.Goles
+                                }).ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            if (equipo == null)
+            {
+                return NotFound();
+            }
+
             return equipo;
         }
+
 
         [HttpPost]
         [Authorize(Roles = "Admin")]

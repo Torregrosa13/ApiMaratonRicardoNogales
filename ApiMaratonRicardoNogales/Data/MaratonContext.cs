@@ -15,5 +15,20 @@ namespace ApiMaratonRicardoNogales.Data
         public DbSet<Gol> Goles { get; set; }
         public DbSet<Tarjeta> Tarjetas { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<Partido>()
+                .HasOne(p => p.EquipoLocal)
+                .WithMany()
+                .HasForeignKey(p => p.IdEquipoLocal)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Partido>()
+                .HasOne(p => p.EquipoVisitante)
+                .WithMany()
+                .HasForeignKey(p => p.IdEquipoVisitante)
+                .OnDelete(DeleteBehavior.Restrict);
+        }
     }
 }

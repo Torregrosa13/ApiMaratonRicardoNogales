@@ -20,16 +20,87 @@ namespace ApiMaratonRicardoNogales.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Partido>>> GetPartidos()
+        public async Task<ActionResult<List<PartidoDTO>>> GetPartidos()
         {
-            return await context.Partidos.ToListAsync();
+            var grupos = await context.Grupos.ToListAsync();
+            var equiposGrupo = await context.EquiposGrupo.ToListAsync();
+
+            var partidos = await context.Partidos
+                .Include(p => p.EquipoLocal)
+                .Include(p => p.EquipoVisitante)
+                .ToListAsync();
+
+            var listaPartidos = new List<PartidoDTO>();
+
+            foreach (var partido in partidos)
+            {
+                var equipoGrupo = equiposGrupo.FirstOrDefault(eg => eg.IdEquipo == partido.IdEquipoLocal);
+                var nombreGrupo = equipoGrupo != null
+                    ? grupos.FirstOrDefault(g => g.IdGrupo == equipoGrupo.IdGrupo)?.Nombre
+                    : "Sin Grupo";
+
+                listaPartidos.Add(new PartidoDTO
+                {
+                    IdPartido = partido.IdPartido,
+                    NombreEquipoLocal = partido.EquipoLocal.Nombre,
+                    NombreEquipoVisitante = partido.EquipoVisitante.Nombre,
+                    GolesLocal = partido.GolesLocal,
+                    GolesVisitante = partido.GolesVisitante,
+                    Fase = partido.Fase,
+                    FechaHora = partido.FechaHora,
+                    NombreGrupo = nombreGrupo
+                });
+            }
+
+            return listaPartidos;
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Partido>> GetPartido(int id)
+        public async Task<ActionResult<PartidoDetalleDTO>> GetPartido(int id)
         {
-            var partido = await context.Partidos.FindAsync(id);
-            return partido;
+            var partido = await context.Partidos
+                .Include(p => p.EquipoLocal)
+                .Include(p => p.EquipoVisitante)
+                .FirstOrDefaultAsync(p => p.IdPartido == id);
+
+            if (partido == null)
+            {
+                return NotFound();
+            }
+
+            var goleadores = await context.Goles
+                .Where(g => g.IdPartido == id)
+                .Select(g => new GolDTO
+                {
+                    NombreJugador = context.Jugadores.FirstOrDefault(j => j.IdJugador == g.IdJugador).Nombre,
+                    Minuto = g.Minuto ?? 0
+                })
+                .ToListAsync();
+
+            var tarjetas = await context.Tarjetas
+                .Where(t => t.IdPartido == id)
+                .Select(t => new TarjetaPartidoDTO
+                {
+                    NombreJugador = t.IdJugador.HasValue
+                        ? context.Jugadores.FirstOrDefault(j => j.IdJugador == t.IdJugador.Value).Nombre
+                        : "Sin jugador asignado",
+                    TipoTarjeta = t.TipoTarjeta
+                })
+                .ToListAsync();
+
+            var partidoDetalle = new PartidoDetalleDTO
+            {
+                IdPartido = partido.IdPartido,
+                NombreEquipoLocal = partido.EquipoLocal.Nombre,
+                NombreEquipoVisitante = partido.EquipoVisitante.Nombre,
+                GolesLocal = partido.GolesLocal,
+                GolesVisitante = partido.GolesVisitante,
+                FechaHora = partido.FechaHora,
+                Goleadores = goleadores,
+                Tarjetas = tarjetas
+            };
+
+            return partidoDetalle;
         }
 
         [HttpPost]
@@ -102,7 +173,7 @@ namespace ApiMaratonRicardoNogales.Controllers
 
             foreach (var tarjeta in dto.Tarjetas)
             {
-                if (tarjeta != null && tarjeta.IdJugador != 0 && !string.IsNullOrEmpty(tarjeta.TipoTarjeta))
+                if (!(tarjeta == null || tarjeta.IdJugador == 0 || string.IsNullOrEmpty(tarjeta.TipoTarjeta)))
                 {
                     var nuevaTarjeta = new Tarjeta
                     {
@@ -119,6 +190,5 @@ namespace ApiMaratonRicardoNogales.Controllers
 
             return Ok();
         }
-
     }
 }
