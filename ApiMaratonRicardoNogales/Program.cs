@@ -71,20 +71,21 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "API Maratón");
+        options.RoutePrefix = string.Empty;
+    });
 }
-app.MapOpenApi();
-app.UseSwagger();
-app.UseSwaggerUI(options=>{
-    options.SwaggerEndpoint("/openapi/v1.json", "api maraton");
-    options.RoutePrefix = "";
-});
-
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
 
 app.MapControllers();
 

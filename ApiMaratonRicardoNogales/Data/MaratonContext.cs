@@ -18,17 +18,31 @@ namespace ApiMaratonRicardoNogales.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Jugador>()
+                .HasOne<Equipo>()
+                .WithMany()
+                .HasForeignKey(j => j.IdEquipo)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EquipoGrupo>()
+                .HasOne<Grupo>()
+                .WithMany()
+                .HasForeignKey(eg => eg.IdGrupo)
+                .OnDelete(DeleteBehavior.Cascade);
+
             modelBuilder.Entity<Partido>()
                 .HasOne(p => p.EquipoLocal)
                 .WithMany()
                 .HasForeignKey(p => p.IdEquipoLocal)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Partido>()
                 .HasOne(p => p.EquipoVisitante)
                 .WithMany()
                 .HasForeignKey(p => p.IdEquipoVisitante)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
         }
+
     }
 }
